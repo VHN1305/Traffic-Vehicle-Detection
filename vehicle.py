@@ -28,6 +28,7 @@ class VehicleDetection:
         self.pack_current_time_templates = defaultdict(float)
         self.opposite_vehicle_direction = []
         self.start_time_at_opposite_direction = defaultdict(float)
+        self.update_pack_time = defaultdict(float)
 
     def still_packed(self, frame, box, template, start_time, track_id, current_time, match_threshold=0.8):
         img = frame[max(0, int(box[1]-10)):min(frame.shape[0], int(box[3]+10)),
@@ -37,13 +38,13 @@ class VehicleDetection:
         results = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)
         locations = np.where(results >= match_threshold)
         if len(locations[0]):
-            # update track_templte in track_id by the new template
-            new_template = frame[int(box[1]):int(box[3]), int(box[0]):int(box[2])]
-            new_template = cv2.cvtColor(new_template, cv2.COLOR_BGR2GRAY)
-            print(self.track_templates[track_id][0].shape)
-            cv2.imshow("Before Update",self.track_templates[track_id][0])
-            self.track_templates[track_id] = [new_template]
-            cv2.imshow("After Update", self.track_templates[track_id][0])
+            if time.time() - self.update_pack_time[track_id] > 20:
+                self.update_pack_time[track_id] = time.time()
+                new_template = frame[int(box[1]):int(box[3]), int(box[0]):int(box[2])]
+                new_template = cv2.cvtColor(new_template, cv2.COLOR_BGR2GRAY)
+                cv2.imshow("Before Update",self.track_templates[track_id][0])
+                self.track_templates[track_id] = [new_template]
+                cv2.imshow("After Update", self.track_templates[track_id][0])
             self.pack_current_time_templates[track_id] = time.time()
             return True
         else:
@@ -134,8 +135,8 @@ class VehicleDetection:
             x, y, w, h = box
 
             if track_id in self.opposite_vehicle_direction:
-
-                vehicle_in_opposite_direction = frame[int(box[1]):int(box[3]), int(box[0]):int(box[2])]
+                x1, y1, x2, y2 = self.xywh_to_xyxy(box)
+                vehicle_in_opposite_direction = frame[int(y1):int(y2), int(x1):int(x2)]
                 time_vehicle_in_opposite_direction = self.start_time_at_opposite_direction[track_id]
                 cv2.imshow("Vehicle in opposite direction", vehicle_in_opposite_direction)
 
@@ -200,6 +201,7 @@ class VehicleDetection:
                                     (x1_template, y1_template, x2_template, y2_template))
                                 self.pack_start_time_templates[track_id] = time.time()
                                 self.pack_current_time_templates[track_id] = time.time()
+                                self.update_pack_time[track_id] = time.time()
 
                 active_track_ids.add(track_id)
                 # Store the current center point of the vehicle in the tracking history
@@ -246,7 +248,7 @@ class VehicleDetection:
         for track_id, track in self.track_history.items():
             if len(track) > 1:
                 points = np.array(track, dtype=np.int32).reshape((-1, 1, 2))
-                cv2.polylines(frame, [points], isClosed=False, color=(230, 230, 230), thickness=2)
+                cv2.polylines(frame, [points], isClosed=False, color=(255, 255, 255), thickness=2)
 
             if len(track) > 10:
                 points = np.array(track, dtype=np.int32).reshape((-1, 1, 2))
@@ -268,7 +270,7 @@ class VehicleDetection:
                             if track_id not in self.opposite_vehicle_direction:
                                 self.opposite_vehicle_direction.append(track_id)
                                 self.start_time_at_opposite_direction[track_id] = time.time()
-                            cv2.polylines(frame, [points], isClosed=False, color=(0, 0, 255), thickness=2)
+                            cv2.polylines(frame, [points], isClosed=False, color=(0, 255, 255), thickness=2)
         return frame
 
     def xywh_to_xyxy(self, box):
@@ -303,8 +305,8 @@ if __name__ == "__main__":
     vehicle_detection = VehicleDetection(model_path)
 
     # URL của luồng RTSP
-    rtsp_url = "rtsp://admin:Admin123@qmh1.cameraddns.net:8102/ISAPI/Streaming/Channels/302"
-    # rtsp_url = "data/video_data/output_video8.avi"
+    # rtsp_url = "rtsp://admin:Admin123@qmh1.cameraddns.net:8102/ISAPI/Streaming/Channels/302"
+    rtsp_url = "data/video_data/output_video8.avi"
     cap = cv2.VideoCapture(rtsp_url)
 
     while cap.isOpened():
