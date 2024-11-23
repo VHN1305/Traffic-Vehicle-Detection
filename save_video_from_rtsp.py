@@ -13,7 +13,7 @@ if not cap.isOpened():
 
 # Đặt codec và tạo VideoWriter để ghi video
 fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Codec XVID
-output_file = 'data/video_data/output_video8.avi'  # Tên file đầu ra
+output_file = 'data/video_data/output_video2.avi'  # Tên file đầu ra
 fps = 20.0                                # Số khung hình trên giây
 frame_size = (int(cap.get(3)), int(cap.get(4)))  # Kích thước khung hình
 
