@@ -1,6 +1,3 @@
-from itertools import count
-from pydoc import locate
-from turtledemo.forest import start
 import json
 import cv2
 import os
@@ -9,14 +6,13 @@ from collections import defaultdict
 import time
 from ultralytics import YOLO
 import json
-import base64
-import matplotlib.path as mpltPath
+from ultils import xywh_to_xyxy, is_point_in_polygon
 
 class VehicleDetection:
     def __init__(self, model_path, max_track_length=30, parked_threshold=10, config_path=None):
         self.model = YOLO(model_path)
-        # self.vehicle_classes = [2, 5, 6, 7, 8, 10]
-        self.vehicle_classes = [0, 1, 2, 3, 4, 5, 6, 7]
+        self.vehicle_classes = [2, 5, 6, 7, 8, 10]
+        # self.vehicle_classes = [0, 1, 2, 3, 4, 5, 6, 7]
         self.track_history = defaultdict(list)  # Store history of track IDs and their positions
         self.track_time_apprence = defaultdict(float)
         self.max_track_length = max_track_length  # Maximum number of points to store per vehicle
@@ -112,7 +108,6 @@ class VehicleDetection:
 
     def is_match_template(self, image, templates, match_threshold=0.6):
         """
-
         :param image: image size must be larger than templates size
         :param templates: hastable of templates
         :param match_threshold: threshold to consider a match
@@ -234,7 +229,7 @@ class VehicleDetection:
                     x, y, w, h = box
 
                     if track_id in self.opposite_vehicle_direction:
-                        x1, y1, x2, y2 = self.xywh_to_xyxy(box)
+                        x1, y1, x2, y2 = xywh_to_xyxy(box)
                         opposite_image_path = os.path.join(image_dir, f"opposite_{track_id}.jpg")
                         if not os.path.exists(opposite_image_path):
                             vehicle_in_opposite_direction = frame[int(y1):int(y2), int(x1):int(x2)]
@@ -262,7 +257,7 @@ class VehicleDetection:
                             if is_vehicle_in_zone:
                                 vehicle_color = (0, 0, 255)
                                 # Check for parking status
-                                x1_template, y1_template, x2_template, y2_template = self.xywh_to_xyxy(box)
+                                x1_template, y1_template, x2_template, y2_template = xywh_to_xyxy(box)
 
                                 box_width = x2_template - x1_template
                                 box_height = y2_template - y1_template
@@ -417,16 +412,8 @@ class VehicleDetection:
                                 # cv2.polylines(frame, [points], isClosed=False, color=(0, 0, 255), thickness=2)
         return frame
 
-    def xywh_to_xyxy(self, box):
-        x, y, w, h = box
-        x1 = x - w / 2
-        y1 = y - h / 2
-        x2 = x + w / 2
-        y2 = y + h / 2
-        return x1, y1, x2, y2
-
     def check_box_in_zone(self, box, zone):
-        x1_box, y1_box, x2_box, y2_box = self.xywh_to_xyxy(box)
+        x1_box, y1_box, x2_box, y2_box = xywh_to_xyxy(box)
         return is_point_in_polygon((x1_box, y1_box), zone) or is_point_in_polygon((x2_box, y2_box), zone) or \
             is_point_in_polygon((x1_box, y2_box), zone) or is_point_in_polygon((x2_box, y1_box), zone)
 
@@ -439,30 +426,11 @@ class VehicleDetection:
         cv2.arrowedLine(frame, arrow[0], arrow[1], (255, 255, 255), 2)
         return frame
 
-
-
-def is_point_in_polygon(point, polygon):
-    """
-    Check if a point is inside a polygon.
-
-    :param point: A tuple representing the point (x, y).
-    :param polygon: A list of tuples representing the polygon vertices [(x1, y1), (x2, y2), ...].
-    :return: True if the point is inside the polygon, False otherwise.
-    """
-    # Convert to numpy array for compatibility with mpltPath
-    polygon = np.array(polygon)
-
-    # Create a Path object for the polygon
-    path = mpltPath.Path(polygon)
-
-    # Check if the point is inside the polygon
-    return path.contains_point(point)
-
-
-
 if __name__ == "__main__":
-    model_path = "model/best.pt"
-    vehicle_detection = VehicleDetection(model_path, config_path="config.json")
+    # model_path = "model/best.pt"
+    model_path = "model/yolov8n.pt"
+
+    vehicle_detection = VehicleDetection(model_path, config_path="config/3.json")
 
     # URL của luồng RTSP
     rtsp_url = "data/video_data/output_video1.avi"

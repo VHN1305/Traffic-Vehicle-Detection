@@ -2,6 +2,30 @@ import cv2
 import numpy as np
 import matplotlib.path as mpltPath
 
+def is_point_in_polygon(point, polygon):
+    """
+    Check if a point is inside a polygon.
+
+    :param point: A tuple representing the point (x, y).
+    :param polygon: A list of tuples representing the polygon vertices [(x1, y1), (x2, y2), ...].
+    :return: True if the point is inside the polygon, False otherwise.
+    """
+    # Convert to numpy array for compatibility with mpltPath
+    polygon = np.array(polygon)
+
+    # Create a Path object for the polygon
+    path = mpltPath.Path(polygon)
+
+    # Check if the point is inside the polygon
+    return path.contains_point(point)
+
+def xywh_to_xyxy(box):
+    x, y, w, h = box
+    x1 = x - w / 2
+    y1 = y - h / 2
+    x2 = x + w / 2
+    y2 = y + h / 2
+    return x1, y1, x2, y2
 
 def is_point_in_polygon(point, polygon):
     """
